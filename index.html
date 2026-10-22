@@ -23,38 +23,38 @@
 </div><div class="explain" id="stageNote"></div><div class="duos"><div class="duo"><span>Prognoza łącznego kosztu etapu brutto</span><strong id="forecast"></strong><span id="forecastMode"></span></div><div class="duo"><span>Różnica prognozy do budżetu inwestora</span><strong id="variance"></strong><span>Dodatnia = koszt ponad planem. Brak wyceny szczegółowej ≠ koszt zerowy.</span></div></div></div></section>
 <section class="panel"><div class="panelhead"><div><h3>Przedmiar i stawki jednostkowe</h3><div class="muted">Wykonawca wpisuje ilość i ceny jednostkowe netto. Każdą pozycję można wycenić osobno.</div></div><button id="add" class="noprint">+ Dodaj pozycję</button></div><div class="scroll"><table class="table"><thead><tr><th>Robota / materiał / parametry</th><th>Status ilości</th><th>Ilość</th><th>Jm</th><th>Materiał<br>zł/j. netto</th><th>Robocizna<br>zł/j. netto</th><th>Sprzęt<br>zł/j. netto</th><th>VAT</th><th>Suma brutto</th><th>Uwagi</th><th class="noprint"></th></tr></thead><tbody id="body"></tbody></table></div><div class="tablefoot"><span id="rowStats"></span><button id="clearPrices" class="noprint">Wyczyść tylko ceny pozycji</button></div></section>
 <section class="panel"><div class="panelhead"><h3>Dane potwierdzone i kwestie do kontroli</h3></div><div class="panelbody"><div class="meta"><div><label>Pow. zabudowy</label><strong>ok. 256 m²</strong></div><div><label>Beton konstrukcyjny</label><strong>C20/25</strong></div><div><label>Stal na rysunkach</label><strong>RB 500 W</strong></div><div><label>Dach</label><strong>Wiązary prefabrykowane*</strong></div></div><div class="explain">* W dokumentacji są ręczne zmiany: odstąpienie od stropu monolitycznego i tradycyjnej więźby na rzecz prefabrykowanych wiązarów. Wymagana aktualna dokumentacja wiązarów i weryfikacja rozwiązań z projektantem. W zestawieniu zbrojenia zapisano <b>2979 kg</b>, ale nie jest to automatycznie ilość stali fundamentów ani ilość po zmianach; nie wpisano jej jako pewnej do konkretnej pozycji.</div></div></section>
-<div class="foot">Źródła danych projektu: dokumentacja „PROJEKT TECHNICZNY”, rysunki konstrukcyjne K1.1–K1.3, „projekt domu” i zestawienie stali oraz oferta EWMAR („Wycena kosztów robocizny SSO”). Wycena EWMAR fundamentów: <b>36 900 zł netto robocizna i 57 880 zł netto materiały</b>, bez piasku do zasypu oraz tyczenia. Wskazane wartości kosztorysu bazowego są orientacyjne, a faktyczna stawka VAT zależy od sposobu świadczenia usług i fakturowania. Serwis nie zastępuje zatwierdzonego przedmiaru ani projektu wykonawczego.</div>
+<div class="foot">Źródła danych projektu: dokumentacja „PROJEKT TECHNICZNY”, rysunki konstrukcyjne K1.1–K1.3, „projekt domu” oraz zestawienie stali. Kalkulator nie zawiera ofert ani cen żadnego wykonawcy. Podane budżety inwestorskie są orientacyjne. Faktyczna stawka VAT zależy od rodzaju usługi i sposobu fakturowania. Serwis nie zastępuje zatwierdzonego przedmiaru ani projektu wykonawczego.</div>
 </main>
 <script>
 (function(){
 'use strict';
-var KEY='budowa-nh761-v1';
+var KEY='budowa-nh761-v2';
 var seeds=[
-{name:'Stan zero',budget:125000,quote:94780,vat:8,extras:16000,progress:0,note:'EWMAR: 36 900 zł netto robocizna oraz 57 880 zł netto materiały. Oferta nie obejmuje piasku do zasypu i tyczenia geodezyjnego. 16 000 zł brutto to wyłącznie robocza rezerwa inwestora na wyłączenia, nie cena wykonawcy.'},
+{name:'Stan zero',budget:125000,quote:null,vat:8,extras:0,progress:0,note:'Wprowadź ofertę wykonawcy i potwierdź zakres. Stan zero: roboty ziemne, ławy, stopy, ściany fundamentowe, izolacje, zasypki, przepusty i podkład betonowy. Koszt piasku, tyczenia i transportu uwzględnij, jeśli nie są w ofercie.'},
 {name:'Stan surowy zamknięty',budget:389000,quote:null,vat:8,extras:0,progress:0,note:'Etap zawiera wszystkie roboty ponad stan zero: ściany, konstrukcję i pokrycie dachu, rynny, okna i drzwi zewnętrzne, bramę garażową. Uwaga na projekt wiązarów prefabrykowanych zamiast pierwotnego stropu i więźby.'},
 {name:'Stan deweloperski',budget:328000,quote:null,vat:8,extras:0,progress:0,note:'Instalacje, posadzki, tynki, ocieplenia, elewacja, sufity. Rodzaje i grubości materiałów oraz urządzeń do potwierdzenia w adaptacji i z wykonawcą. Ogrzewanie wg dokumentacji / ustaleń — nie wybierać bez projektu instalacji.'},
 {name:'Pod klucz i teren',budget:246000,quote:null,vat:8,extras:0,progress:0,note:'Wykończenie, osprzęt, biały montaż, garaż, przyłącza i zagospodarowanie działki. Oddzielnie uzgodnić ogrodzenie, nawierzchnie i meble. Budżet bazowy obejmuje wykończenie i orientacyjną część prac zewnętrznych.'}
 ];
 var rows=[];
 function add(s,g,title,unit,qty,flag,desc){rows.push({id:'r'+rows.length,stage:s,group:g,title:title,unit:unit,qty:qty,flag:flag||'todo',desc:desc||'',m:null,r:null,k:null,vat:8,note:''});}
-add(0,'Przygotowanie','Wytyczenie obiektu','kpl.',null,'todo','Poza ofertą EWMAR; geodeta');
+add(0,'Przygotowanie','Wytyczenie obiektu','kpl.',null,'todo','Tyczenie geodezyjne: potwierdzić, czy obejmuje oferta');
 add(0,'Roboty ziemne','Ściągnięcie humusu i wykopy','m³',null,'todo','Uwzględnić składowanie i wywóz');
-add(0,'Roboty ziemne','Praca koparki, załadunek i transport','r-g',null,'todo','Oferta EWMAR zawiera koparkę w opisanym zakresie');
+add(0,'Roboty ziemne','Praca koparki, załadunek i transport','r-g',null,'todo','Zweryfikować zakres pracy koparki i transport gruntu');
 add(0,'Ławy fundamentowe','Chudy beton pod ławy','m³',null,'todo','Potwierdzić klasę i grubość z dokumentacją');
 add(0,'Ławy fundamentowe','Beton konstrukcyjny ław C20/25','m³',null,'todo','Rysunek K1.1, wymiary ław zależnie od odcinka');
 add(0,'Ławy fundamentowe','Zbrojenie ław / stóp RB 500 W','kg',null,'todo','Nie przyjmować 2979 kg całego zestawienia jako fundamentów');
 add(0,'Ławy fundamentowe','Szalowanie i rozszalowanie ław/stóp','m²',null,'todo','Szalunki w ofercie wykonawcy');
 add(0,'Ławy fundamentowe','Stopy fundamentowe pod słupy C20/25','m³',null,'todo','Weryfikacja po adaptacji');
-add(0,'Ławy fundamentowe','Uziom fundamentowy','kpl.',1,'estimate','W ofercie EWMAR: wykonanie uziomu; sprawdzić materiał i odbiór');
+add(0,'Ławy fundamentowe','Uziom fundamentowy','kpl.',1,'estimate','Uziom fundamentowy: materiał, pomiary i odbiór');
 add(0,'Ściany fundamentowe','Bloczki betonowe fundamentowe','szt.',null,'todo','Ilość zależna od długości i wysokości ścian');
 add(0,'Ściany fundamentowe','Zaprawa cementowa / murowanie','m²',null,'todo','Powierzchnia ścian');
 add(0,'Izolacje','Izolacja pozioma fundamentów','m²',null,'todo','Hydroizolacja wg projektu');
 add(0,'Izolacje','Izolacja pionowa ścian fundamentowych','m²',null,'todo','Warstwy, system i gwarancja');
 add(0,'Izolacje','Ocieplenie fundamentów XPS/EPS odpowiedni','m²',null,'todo','Wykonawca ma wskazać rodzaj i grubość');
-add(0,'Izolacje','Folia kubełkowa i listwy wykończeniowe','m²',null,'todo','W ofercie EWMAR');
-add(0,'Zasypki i podkład','Piasek do zasypu, z dostawą','m³',null,'todo','Poza ceną EWMAR; potwierdzić ilość i zagęszczenie');
-add(0,'Zasypki i podkład','Zasypanie i zagęszczenie','m³',null,'todo','W ofercie EWMAR');
-add(0,'Zasypki i podkład','Kanalizacja podposadzkowa / przepusty','kpl.',1,'estimate','Rury w ofercie EWMAR — potwierdzić montaż');
+add(0,'Izolacje','Folia kubełkowa i listwy wykończeniowe','m²',null,'todo','Do potwierdzenia z wykonawcą');
+add(0,'Zasypki i podkład','Piasek do zasypu, z dostawą','m³',null,'todo','Sprawdzić ilość piasku, dowóz i koszt zagęszczenia');
+add(0,'Zasypki i podkład','Zasypanie i zagęszczenie','m³',null,'todo','Do potwierdzenia z wykonawcą');
+add(0,'Zasypki i podkład','Kanalizacja podposadzkowa / przepusty','kpl.',1,'estimate','Uzgodnić rury, przepusty, montaż i próby szczelności');
 add(0,'Zasypki i podkład','Podkład betonowy podłogi na gruncie','m²',null,'todo','Według projektu i rzeczywistej powierzchni, NIE automatycznie 256 m²');
 add(1,'Ściany','Ściany zewnętrzne nośne – bloczki/pustaki','m²',null,'todo','Materiał i grubość wg adaptacji');
 add(1,'Ściany','Ściany wewnętrzne nośne','m²',null,'todo','Materiał wg projektu');
@@ -104,10 +104,10 @@ add(3,'Teren','Taras / schody zewnętrzne','m²',null,'todo','Standard do decyzj
 add(3,'Teren','Ogrodzenie i brama wjazdowa','mb',null,'todo','Opcjonalny zakres');
 add(3,'Odbiory','Geodezyjna inwentaryzacja powykonawcza','kpl.',1,'estimate','Potwierdzić koszt z geodetą');
 add(3,'Odbiory','Odbiory, świadectwo i dokumentacja','kpl.',1,'estimate','Warunki zakończenia budowy');
-var initial={version:1,stage:0,reserve:15,stages:seeds,rows:rows};
+var initial={version:2,stage:0,reserve:15,stages:seeds,rows:rows};
 function clone(a){return JSON.parse(JSON.stringify(a));}
 var data;
-try{var stored=JSON.parse(localStorage.getItem(KEY)||'null');data=(stored&&stored.version===1&&Array.isArray(stored.rows)&&stored.stages.length===4)?stored:clone(initial);}catch(e){data=clone(initial)}
+try{var stored=JSON.parse(localStorage.getItem(KEY)||'null');data=(stored&&stored.version===2&&Array.isArray(stored.rows)&&stored.stages.length===4)?stored:clone(initial);}catch(e){data=clone(initial)}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){/* manual export still works */}}
 function el(x){return document.getElementById(x);}
 function money(x){return Math.round(Number(x)||0).toLocaleString('pl-PL')+' zł';}
@@ -133,7 +133,7 @@ el('clearPrices').addEventListener('click',function(){if(!confirm('Wyczyścić c
 el('resetStage').addEventListener('click',function(){if(!confirm('Wyczyścić ofertę zbiorczą, rezerwę i wszystkie ceny jednostkowe wybranego etapu?'))return;var s=data.stages[data.stage];s.quote=null;s.extras=0;s.progress=0;data.rows.filter(function(r){return r.stage===data.stage}).forEach(function(r){r.m=r.r=r.k=null;});save();render();});
 function exportFile(name,content,mime){var blob=new Blob([content],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},500);}
 el('download').addEventListener('click',function(){exportFile('budowa-new-house-761-dane.json',JSON.stringify(data,null,2),'application/json');});
-el('upload').addEventListener('click',function(){el('file').click()});el('file').addEventListener('change',function(){var f=this.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){try{var obj=JSON.parse(rd.result);if(obj.version!==1||!Array.isArray(obj.rows)||!Array.isArray(obj.stages)||obj.stages.length!==4)throw Error('Nieobsługiwany plik');if(!confirm('Wczytanie pliku zastąpi lokalne dane. Kontynuować?'))return;data=obj;data.stage=0;save();render();alert('Wczytano dane.');}catch(e){alert('Nie udało się wczytać poprawnego pliku JSON.')}};rd.readAsText(f);this.value='';});
+el('upload').addEventListener('click',function(){el('file').click()});el('file').addEventListener('change',function(){var f=this.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){try{var obj=JSON.parse(rd.result);if(obj.version!==2||!Array.isArray(obj.rows)||!Array.isArray(obj.stages)||obj.stages.length!==4)throw Error('Nieobsługiwany plik');if(!confirm('Wczytanie pliku zastąpi lokalne dane. Kontynuować?'))return;data=obj;data.stage=0;save();render();alert('Wczytano dane.');}catch(e){alert('Nie udało się wczytać poprawnego pliku JSON.')}};rd.readAsText(f);this.value='';});
 el('csv').addEventListener('click',function(){var lines=[['Etap','Grupa','Pozycja','Jednostka','Ilość','Status','Materiał netto/j','Robocizna netto/j','Sprzęt netto/j','VAT','Suma brutto','Notatka']];data.rows.forEach(function(r){var a=data.stages[r.stage];lines.push([a.name,r.group,r.title,r.unit,isSet(r.qty)?r.qty:'',r.flag,isSet(r.m)?r.m:'',isSet(r.r)?r.r:'',isSet(r.k)?r.k:'',r.vat,rowTotal(r)===null?'':rowTotal(r),r.note]);});var csv='\uFEFF'+lines.map(function(a){return a.map(function(x){return '"'+String(x).replace(/"/g,'""')+'"'}).join(';')}).join('\r\n');exportFile('budowa-new-house-761-pozycje.csv',csv,'text/csv;charset=utf-8');});
 el('print').addEventListener('click',function(){window.print()});
 render();
