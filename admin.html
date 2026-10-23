@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Panel inwestora | Wyceny budowy</title>
+<style>
+:root{--navy:#102437;--teal:#007d70;--bg:#f3f5f8;--muted:#657488;--line:#dce3e9;--red:#b44343}
+*{box-sizing:border-box}body{margin:0;color:#1a2937;background:var(--bg);font:14px/1.5 system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+header{background:var(--navy);color:white;padding:30px max(20px,calc((100vw - 1380px)/2))}h1{font-size:28px;margin:0 0 5px}p{margin:4px 0 12px}
+main{max-width:1420px;padding:20px;margin:auto}.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin:0 0 18px;box-shadow:0 4px 18px #1129440a}
+label{display:block;color:var(--muted);font-size:12px;font-weight:700;margin-bottom:5px}
+input,select,button{font:inherit;padding:11px;border:1px solid #cbd6de;border-radius:8px;background:white}
+input{min-width:260px;max-width:100%}button{font-weight:700;cursor:pointer}button.primary{background:var(--teal);border-color:var(--teal);color:white}
+.tools{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.muted{color:var(--muted);font-size:12px}
+table{width:100%;border-collapse:collapse;min-width:1070px}th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:11px;color:var(--muted);background:#edf2f6;white-space:nowrap}
+.scroll{overflow:auto}.money{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;font-weight:750}.num{text-align:right}
+.badge{border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800;background:#fff0d2;color:#946414}.badge.submitted{background:#e2f4eb;color:#216750}
+.empty{padding:30px;text-align:center;color:var(--muted)}.error{color:var(--red)}.hint{background:#fff9eb;padding:12px;border-radius:9px;color:#705016;font-size:12px}
+small{color:var(--muted)}a{color:var(--teal)}@media(max-width:600px){header{padding:24px 18px}h1{font-size:23px}.panel{padding:12px}main{padding:12px}.tools>*{width:100%}}
+</style>
+</head>
+<body>
+<header><h1>Oferty wykonawców — panel inwestora</h1><p style="color:#b6c8d8">New House 761 W1 · przegląd ofert zapisanych w Turso</p></header>
+<main>
+<section class="panel" id="login">
+  <h2>Wejście do prywatnych wycen</h2>
+  <p class="muted">Podaj hasło panelu. Nie jest zapisywane w bazie ani w pamięci przeglądarki.</p>
+  <form class="tools" id="loginForm">
+    <div><label for="key">Hasło inwestora</label><input id="key" type="password" autocomplete="off" required></div>
+    <button class="primary" type="submit">Pokaż oferty</button>
+  </form>
+  <p id="message" role="status"></p>
+</section>
+<section class="panel" id="offersPanel" hidden>
+  <div class="tools" style="margin-bottom:14px">
+    <div><h2 style="margin:0">Zebrane oferty</h2><div class="muted" id="counter"></div></div>
+    <div style="flex:1"></div>
+    <div><label for="filter">Wyszukaj wykonawcę</label><input id="filter" type="search" placeholder="Firma lub kontakt"></div>
+    <div><label for="statusFilter">Status</label><select id="statusFilter"><option value="">Wszystkie</option><option value="submitted">Złożone</option><option value="draft">Robocze</option></select></div>
+    <button id="refresh">Odśwież</button><button id="logout">Zablokuj panel</button>
+  </div>
+  <div class="scroll"><table><thead><tr><th>Wykonawca / kontakt</th><th>Status</th><th>Stan zero</th><th>Surowy zamknięty</th><th>Deweloperski</th><th>Pod klucz i teren</th><th>Całość brutto</th><th>Zmiana</th><th>Dane</th></tr></thead><tbody id="rows"></tbody></table></div>
+  <p class="hint">Kwota całego domu jest widoczna tylko, gdy wszystkie 4 etapy mają kompletną wycenę. Oferty zbiorcze nie są dodawane ponownie do pozycji szczegółowych. Porównaj też zakres — niższa suma nie zawsze oznacza tańszą budowę.</p>
+</section>
+</main>
+<script>
+(function () {
+'use strict';
+var adminKey = '';
+var offers = [];
+var el = function (id) { return document.getElementById(id); };
+var esc = function (v) { return String(v === undefined || v === null ? '' : v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
+var set = function (v) { return v !== '' && v !== null && v !== undefined && Number.isFinite(Number(v)); };
+var num = function (v) { return set(v) ? Math.max(0,Number(v)) : 0; };
+var round = function (v) { return Math.round((Number(v) + Number.EPSILON) * 100) / 100; };
+var money = function (v) { return new Intl.NumberFormat('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v)+' zł'; };
+function totals(data) {
+  return [0,1,2,3].map(function(i){
+    var stage=data.stages[i];
+    var rows=data.rows.filter(function(r){return r.stage===i;});
+    var ready=rows.filter(function(r){return r.na===true||(set(r.qty)&&Number(r.qty)>0&&set(r.vat)&&[r.m,r.r,r.k].some(set));});
+    var partial=ready.reduce(function(sum,r){return sum+(r.na===true?0:round(num(r.qty)*(num(r.m)+num(r.r)+num(r.k))*(1+num(r.vat)/100)));},0);
+    var quote=set(stage.quote)&&Number(stage.quote)>0&&set(stage.vat);
+    return quote ? round(num(stage.quote)*(1+num(stage.vat)/100))+num(stage.extras) :
+      (rows.length>0&&rows.length===ready.length ? round(partial)+num(stage.extras) : null);
+  });
+}
+function download(name, obj) {
+  var blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},500);
+}
+function render() {
+  var term=el('filter').value.trim().toLowerCase(),status=el('statusFilter').value;
+  var list=offers.filter(function(o){return (!status||o.status===status)&&(!term||(o.company+' '+o.contact).toLowerCase().includes(term));});
+  el('counter').textContent=list.length+' z '+offers.length+' ofert';
+  if(!list.length){el('rows').innerHTML='<tr><td colspan="9" class="empty">Brak ofert do wyświetlenia</td></tr>';return;}
+  el('rows').innerHTML=list.map(function(o){
+    var t=totals(o.data),complete=t.every(function(v){return v!==null;});
+    var date=new Date(o.updatedAt).toLocaleString('pl-PL');
+    return '<tr><td><strong>'+esc(o.company)+'</strong><div class="muted">'+esc(o.contact)+'</div></td>'+
+      '<td><span class="badge '+(o.status==='submitted'?'submitted':'')+'">'+(o.status==='submitted'?'Złożona':'Robocza')+'</span></td>'+
+      t.map(function(v){return '<td class="money">'+(v===null?'—':money(v))+'</td>';}).join('')+
+      '<td class="money">'+(complete?money(round(t.reduce(function(a,b){return a+b;},0))):'—')+'</td>'+
+      '<td><small>'+esc(date)+'</small></td><td><button data-id="'+esc(o.id)+'">JSON</button></td></tr>';
+  }).join('');
+}
+async function load() {
+  el('message').textContent='Wczytywanie...';
+  try{
+    var result=await fetch('/api/offers',{headers:{'X-Admin-Key':adminKey},cache:'no-store'});
+    var body=await result.json();
+    if(!result.ok)throw new Error(body.error||'Błąd pobierania danych');
+    offers=body.offers||[];
+    el('login').hidden=true;el('offersPanel').hidden=false;
+    el('message').textContent='';render();
+  }catch(e){el('message').textContent=e.message;el('message').className='error';}
+}
+el('loginForm').addEventListener('submit',function(e){e.preventDefault();adminKey=el('key').value;el('key').value='';load();});
+el('refresh').addEventListener('click',load);
+el('filter').addEventListener('input',render);
+el('statusFilter').addEventListener('change',render);
+el('rows').addEventListener('click',function(e){var btn=e.target.closest('button[data-id]');if(!btn)return;var o=offers.find(function(x){return x.id===btn.dataset.id;});if(o)download('wycena-'+o.id.slice(0,8)+'.json',o.data);});
+el('logout').addEventListener('click',function(){adminKey='';offers=[];el('offersPanel').hidden=true;el('login').hidden=false;el('message').textContent='';});
+})();
+</script>
+</body>
+</html>

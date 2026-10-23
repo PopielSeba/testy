@@ -10,9 +10,10 @@
 @media print{.head,.wrap{display:none!important}#printReport{display:block!important;background:white;color:#111;font:9px/1.3 Arial,sans-serif}#printReport h1{font-size:22px}#printReport h2{font-size:15px;border-bottom:2px solid #456;padding-bottom:6px;break-after:avoid}#printReport .pdfstage{break-before:page}#printReport table{width:100%;border-collapse:collapse;table-layout:fixed}#printReport td,#printReport th{font-size:9px;padding:4px;border:1px solid #bbc4cc;text-align:left;overflow-wrap:anywhere}#printReport th{background:#eef0f3}#printReport tr{break-inside:avoid}#printReport .pdfrows th:first-child{width:31%}#printReport .pdfnote{font-size:9px;color:#567}#printReport .pdfend{border:1px solid #99a;padding:8px;margin:8px 0}#printReport .pdfmeta{margin:8px 0 15px;padding:8px;border:1px solid #bbc} }
 </style></head>
 <body>
-<header class="head"><div class="headin"><div><div class="eyebrow">PRZEDMIAR I FORMULARZ OFERTOWY / NEW HOUSE 761 W1</div><h1>Formularz wyceny budowy</h1><div class="subtitle">Jelcz-Laskowice · 4 etapy · formularz dla wykonawców · stan: październik 2026</div></div><div class="actions noprint"><button id="download">Eksport JSON</button><button id="upload">Import JSON</button><button id="csv">Eksport CSV</button><button id="print" class="emph">Zapisz pełną ofertę jako PDF</button><input type="file" id="file" accept=".json" hidden></div></div></header>
+<header class="head"><div class="headin"><div><div class="eyebrow">PRZEDMIAR I FORMULARZ OFERTOWY / NEW HOUSE 761 W1</div><h1>Formularz wyceny budowy</h1><div class="subtitle">Jelcz-Laskowice · 4 etapy · formularz dla wykonawców · stan: październik 2026</div></div><div class="actions noprint"><button id="onlineSave" class="emph">Zapisz w bazie</button><button id="onlineSubmit">Złóż ofertę</button><button id="onlineResume">Wczytaj z bazy</button><button id="newOffer">Nowa wycena</button><button id="download">Eksport JSON</button><button id="upload">Import JSON</button><button id="csv">Eksport CSV</button><button id="print" class="emph">Zapisz pełną ofertę jako PDF</button><input type="file" id="file" accept=".json" hidden></div></div></header>
 <main class="wrap">
-<div class="notice"><b>Neutralny formularz ofertowy.</b> Bez sugerowanych kwot, cen rynkowych, budżetu inwestora i prognoz. Wykonawca wpisuje własne stawki. Sumy powstają wyłącznie na podstawie uzupełnionych ofert. Dane zapisują się w przeglądarce; wycenę można przekazać przez JSON lub CSV.</div>
+<div class="notice"><b>Neutralny formularz ofertowy.</b> Bez sugerowanych kwot, cen rynkowych, budżetu inwestora i prognoz. Wykonawca wpisuje własne stawki. Sumy powstają wyłącznie na podstawie uzupełnionych ofert. Dane robocze zapisują się lokalnie. Przyciskiem „Zapisz w bazie” zapiszesz kopię online. „Złóż ofertę” zamyka ją dla dalszej edycji. PDF i JSON nadal działają.</div>
+<div id="onlineStatus" class="notice noprint" role="status" aria-live="polite" style="margin-top:10px;background:#eef6fb;border-color:#c7dfed;color:#28536e">Dane są zapisane lokalnie w tej przeglądarce. Aby udostępnić ofertę inwestorowi, wybierz „Zapisz w bazie”.</div>
 <section class="panel"><div class="panelhead"><h3>Dane wykonawcy</h3></div><div class="panelbody"><div class="fields"><div class="field"><label>Nazwa firmy</label><input id="company" placeholder="Wykonawca"></div><div class="field"><label>Kontakt</label><input id="contact" placeholder="Telefon / e-mail"></div><div class="field"><label>Data oferty</label><input id="offerDate" type="date"></div><div class="field"><label>Ważność oferty</label><input id="deadline" placeholder="Np. 30 dni"></div></div></div></section><section class="cards" id="totals"></section>
 <div class="rowhead"><div><h2>Etapy budowy</h2><div class="muted">Wybierz etap, żeby wprowadzić ceny, ilości i uwagi.</div></div><div class="muted">Bez sugerowanych stawek</div></div>
 <section class="stages" id="stageTabs"></section>
@@ -29,6 +30,13 @@
 (function(){
 'use strict';
 var KEY='budowa-nh761-ofertowy-v3';
+var CLOUD_KEY='budowa-nh761-cloud-v1';
+var cloudRef=null;
+try {
+ var recovered=JSON.parse(localStorage.getItem(CLOUD_KEY)||'null');
+ if(recovered&&typeof recovered.id==='string'&&typeof recovered.editKey==='string')cloudRef=recovered;
+} catch(e) {}
+
 var seeds=[
 {name:'Stan zero',quote:null,vat:null,extras:null,progress:0,note:'Wprowadź ofertę wykonawcy i potwierdź zakres. Stan zero: roboty ziemne, ławy, stopy, ściany fundamentowe, izolacje, zasypki, przepusty i podkład betonowy. Koszt piasku, tyczenia i transportu uwzględnij, jeśli nie są w ofercie.'},
 {name:'Stan surowy zamknięty',quote:null,vat:null,extras:null,progress:0,note:'Etap zawiera wszystkie roboty ponad stan zero: ściany, konstrukcję i pokrycie dachu, rynny, okna i drzwi zewnętrzne, bramę garażową. Uwaga na projekt wiązarów prefabrykowanych zamiast pierwotnego stropu i więźby.'},
@@ -108,7 +116,7 @@ var initial={version:3,stage:0,company:'',contact:'',offerDate:'',deadline:'',st
 function clone(a){return JSON.parse(JSON.stringify(a));}
 var data;
 try{var stored=JSON.parse(localStorage.getItem(KEY)||'null');data=(stored&&stored.version===3&&Array.isArray(stored.rows)&&stored.stages.length===4)?stored:clone(initial);}catch(e){data=clone(initial)}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){/* manual export still works */}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){/* manual export still works */}if(cloudRef&&cloudRef.status==='draft'){var statusEl=document.getElementById('onlineStatus');if(statusEl)statusEl.textContent='Zmiany zapisano lokalnie. Kliknij „Zapisz w bazie”, aby zaktualizować ofertę online.';}}
 function el(x){return document.getElementById(x);}
 function money(x){return new Intl.NumberFormat('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(x)||0)+' zł';}
 function esc(s){return String(s===null||s===undefined?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]});}
@@ -171,6 +179,73 @@ function buildPdf(){
  out+='</table><div class="pdfend"><b>Razem brutto za etap: '+(a.total===null?'BRAK KOMPLETNEJ WYCENY':money(a.total))+'</b> | Wyceniono lub N/D: '+a.d.priced+' z '+a.d.count+'. Suma szczegółowa: '+(a.d.priced?money(a.d.total):'—')+'.</div></section>'});
  el('printReport').innerHTML=out;
 }
+
+function setCloudStatus(message,error){
+ var box=el('onlineStatus');
+ box.textContent=message;
+ box.style.background=error?'#fff0ec':'#eef6fb';
+ box.style.borderColor=error?'#eabeb8':'#c7dfed';
+}
+function saveCloudReference(ref){
+ cloudRef=ref;
+ try{localStorage.setItem(CLOUD_KEY,JSON.stringify(ref));}catch(e){}
+}
+function currentRecoveryCode(){return cloudRef?cloudRef.id+'.'+cloudRef.editKey:'';}
+async function writeCloud(finalize) {
+ if(!data.company.trim()||data.company.trim().length<2||!data.contact.trim()||data.contact.trim().length<3){
+  setCloudStatus('Uzupełnij nazwę firmy i kontakt przed zapisaniem w bazie.',true);
+  return;
+ }
+ if(cloudRef&&cloudRef.status==='submitted'){
+  setCloudStatus('Oferta jest już złożona i nie można jej zmieniać. Aby przygotować kolejną, wybierz „Nowa wycena”.',true);
+  return;
+ }
+ if(finalize&&!confirm('Złożyć ofertę inwestorowi? Po wysłaniu nie będzie można edytować zapisanej wersji.'))return;
+ var btn=el(finalize?'onlineSubmit':'onlineSave');
+ btn.disabled=true;
+ setCloudStatus(finalize?'Przekazywanie oferty...':'Zapisywanie w Turso...');
+ try{
+  var body={data:data,finalize:finalize};
+  if(cloudRef){body.id=cloudRef.id;body.editKey=cloudRef.editKey;}
+  var response=await fetch('/api/offers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  var result=await response.json();
+  if(!response.ok)throw new Error(result.error||'Błąd zapisu oferty');
+  var first=!cloudRef;
+  saveCloudReference({id:result.id,editKey:result.editKey,status:result.status});
+  setCloudStatus(result.status==='submitted'?'Oferta została złożona i zabezpieczona w bazie. Możesz przygotować PDF.':'Zapisano w Turso: '+new Date(result.updatedAt).toLocaleString('pl-PL')+'. Zachowaj swój kod dostępu do edycji.');
+  if(first)prompt('To jednorazowy kod odzyskania Twojej oferty na innym komputerze. Skopiuj i zachowaj go w bezpiecznym miejscu:',currentRecoveryCode());
+ }catch(e){setCloudStatus('Nie zapisano w bazie: '+e.message+'. Twoje dane lokalne pozostały bez zmian.',true);}
+ finally{btn.disabled=false;}
+}
+el('onlineSave').addEventListener('click',function(){writeCloud(false);});
+el('onlineSubmit').addEventListener('click',function(){writeCloud(true);});
+el('onlineResume').addEventListener('click',async function(){
+ var code=prompt('Wklej kod odzyskiwania (identyfikator.kod):',currentRecoveryCode());
+ if(!code)return;
+ var dot=code.indexOf('.'),id=code.slice(0,dot),editKey=code.slice(dot+1);
+ if(dot<0||!id||!editKey){setCloudStatus('Nieprawidłowy format kodu.',true);return;}
+ if(!confirm('Wczytanie zastąpi aktualny formularz w tej przeglądarce. Czy kontynuować?'))return;
+ try{
+  var response=await fetch('/api/offers?id='+encodeURIComponent(id),{headers:{'X-Edit-Key':editKey},cache:'no-store'});
+  var result=await response.json();
+  if(!response.ok)throw new Error(result.error||'Błąd pobierania');
+  if(result.data.version!==3||!Array.isArray(result.data.rows)||!Array.isArray(result.data.stages)||result.data.stages.length!==4)throw new Error('Nieobsługiwany format danych');
+  data=result.data;data.stage=0;
+  saveCloudReference({id:id,editKey:editKey,status:result.status});
+  save();render();
+  setCloudStatus(result.status==='submitted'?'Wczytano złożoną ofertę (tylko do podglądu).':'Wczytano ofertę z Turso. Możesz ją poprawić i ponownie zapisać.');
+ }catch(e){setCloudStatus('Nie udało się wczytać: '+e.message,true);}
+});
+el('newOffer').addEventListener('click',function(){
+ if(!confirm('Rozpocząć nową, pustą wycenę? Obecne dane lokalne zostaną zastąpione. Upewnij się, że dotychczasowa oferta jest zapisana online lub w PDF/JSON.'))return;
+ cloudRef=null;
+ try{localStorage.removeItem(CLOUD_KEY);}catch(e){}
+ data=clone(initial);
+ save();render();
+ setCloudStatus('Nowa wycena. Dane nie zostały jeszcze wysłane do bazy.');
+});
+if(cloudRef)setCloudStatus(cloudRef.status==='submitted'?'Ta oferta została już złożona. W bazie nie da się jej zmienić.':'W tej przeglądarce jest zapisany kod oferty. Wybierz „Zapisz w bazie”, aby zsynchronizować bieżące dane.');
+
 el('print').addEventListener('click',function(){buildPdf();window.print()});
 render();
 })();
